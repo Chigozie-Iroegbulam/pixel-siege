@@ -5,7 +5,9 @@ step: open `index.html` to run. See README.md for controls and file layout.
 
 ## Workflow: always use Git + GitHub
 
-- Remote: `origin` → GitHub repo `Chigozie-Iroegbulam/pixel-siege` (private), branch `main`.
+- Remote: `origin` → GitHub repo `Chigozie-Iroegbulam/pixel-siege` (public), branch `main`.
+- Hosted on GitHub Pages from `main` (root): https://chigozie-iroegbulam.github.io/pixel-siege/
+  Every push to `main` redeploys the live game.
 - After every meaningful change: stage, commit with a clean message, and push to `origin main`.
 - Keep commits small and focused (one logical change each) so any change is easy to revert.
 - Commit message style: imperative summary line (≤ 60 chars, e.g. "Add shotgun power-up"),

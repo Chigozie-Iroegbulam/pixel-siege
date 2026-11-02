@@ -5,7 +5,9 @@ install and no build step.
 
 ## Play
 
-Open `index.html` in any modern browser. Tip: `index.html?level=6` jumps
+**Play online:** https://chigozie-iroegbulam.github.io/pixel-siege/
+
+Or run it locally: open `index.html` in any modern browser. Tip: `index.html?level=6` jumps
 straight to a level (1–6).
 
 | Action | Control |
