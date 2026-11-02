@@ -6,6 +6,31 @@ Pixel Siege is a browser-based top-down retro shooter: HTML5 canvas and vanilla 
 and no dependencies. Live at https://chigozie-iroegbulam.github.io/pixel-siege/ (GitHub Pages from
 `main`, root). Every push to `main` redeploys it. README.md has the controls and tuning knobs.
 
+## Required: commit and push your work to GitHub as you go
+
+The point is to never lose work or the current state of the project. Every working version must be
+saved in Git and on GitHub so it's easy to go back to.
+
+- **Commit while you work, not just at the end.** Each time you finish a logical piece of work (a
+  feature, a fix, a tuning pass, a docs change), syntax-check it, commit it, and push it before
+  starting the next piece. Don't wait for the user to ask.
+- **Never finish a task or end a session with uncommitted or unpushed changes.** Before reporting
+  that you're done, run `git status -sb`. It must show a clean tree with `main...origin/main` and
+  nothing ahead. If a push fails, say so and fix it. Don't report work as saved until it has been
+  pushed.
+- **Clean commit messages:**
+  - An imperative summary line of 60 characters or fewer, e.g. "Add shotgun power-up" or "Fix
+    spitter firing while off-screen".
+  - A blank line, then a short body explaining what changed and why when that isn't obvious.
+  - One logical change per commit. Don't lump unrelated changes together, and don't make vague
+    "updates" or "WIP" commits.
+- **Only commit working code.** Each commit should leave the game runnable, so any commit is safe to
+  go back to.
+- **Undo with `git revert`, never by rewriting history.** No force-pushes, no `reset --hard` on
+  pushed commits, no amending pushed commits.
+- Remote: `origin` → `Chigozie-Iroegbulam/pixel-siege` (public), branch `main`. Pushing to `main`
+  also updates the live game.
+
 ## Commands
 
 - **Run:** `open index.html`. It must keep working from `file://`, so no ES modules and no `fetch`.
@@ -81,12 +106,3 @@ Add a new sound as a `case` in `Sound.play`.
 
 **Persistence.** `localStorage` keys are `pixelSiege.best` and `pixelSiege.muted`. Every access is
 wrapped in try/catch.
-
-## Workflow: always use Git + GitHub
-
-- Remote: `origin` → `Chigozie-Iroegbulam/pixel-siege` (public), branch `main`.
-- After every meaningful change: syntax-check, then commit with a clean message and push to `origin main`.
-- Keep commits small and focused (one logical change each) so any change is easy to revert.
-- Message style: imperative summary line of 60 characters or fewer (e.g. "Add shotgun power-up"),
-  a blank line, then a short body explaining what changed and why when it isn't obvious.
-- Never force-push or rewrite pushed history. To undo a change, use `git revert`.
