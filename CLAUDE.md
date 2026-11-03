@@ -58,12 +58,15 @@ saved in Git and on GitHub so it's easy to go back to.
 ## Architecture
 
 **Globals and load order.** Every file defines globals and is loaded with a plain `<script>` tag. The
-order in `index.html` matters: `sprites.js` → `input.js` → `audio.js` → `entities.js` → `levels.js` →
+order in `index.html` matters: `sprites.js` → `input.js` → `touch.js` → `audio.js` → `entities.js` → `levels.js` →
 `game.js`. `game.js` calls `Game.init()` and starts the `requestAnimationFrame` loop as soon as it
-loads. A new file needs its own tag, placed before the files that use it.
+loads. A new file needs its own tag, placed before the files that use it. Constants like `VIEW_W` are
+defined in `game.js`, so earlier files may use them only inside functions, not at the top level.
 
 **Rendering.** The whole game draws onto a 320×240 offscreen buffer (`Game.buf` / `Game.bctx`), which
-is then scaled up by a whole number onto the visible canvas with smoothing off. All game coordinates
+is then scaled up by a whole number onto the visible canvas with smoothing off. In touch mode,
+`resize()` fills the screen instead (a CSS size that isn't a whole number, drawn at device
+resolution), because whole-number scaling leaves phones at 1x. All game coordinates
 are buffer pixels. `Input` converts mouse positions into buffer pixels. Positions are rounded when
 drawn so pixels stay crisp. Text uses the 3×5 bitmap font: `drawText` in `sprites.js`, uppercase only,
 and missing glyphs render as `?`. Add a glyph to `FONT` before using a new character.
@@ -73,6 +76,24 @@ frame. `Game.update` switches on `Game.state` (MENU, PLAYING, PAUSED, LEVEL_COMP
 VICTORY) and ends every step with `Input.endStep()`. That call clears the one-shot flags
 `Input.pressed` and `Input.mouse.clicked`, so read them only inside an update step. Use
 `Input.isDown` for keys that are held. `Game.render` switches on the same states to draw overlays.
+
+**Touch.** `TouchControls` (`touch.js`) turns touches into `Input` fields, so game code never
+reads touch events directly:
+- `Input.move` is the left stick as an analog `{x, y}` with length 0–1.
+- `Input.aim` is the right stick as a unit vector, or `null`. `Input.touchFire` is true while the
+  right stick is pushed.
+- `Input.touchMode` is true after the first touch or on a touch-first device, and false again after
+  a real mouse moves. It switches the HUD text (use `Game.tapWord()` for "TAP"/"CLICK"), hides the
+  mouse crosshair, and changes scaling.
+
+Sticks only start while PLAYING. Touching the top-right corner sends `Input.pressed.Escape` (pause).
+In every other state a touch is a tap: it sets `Input.mouse.x/y` and `clicked`. The touch pause
+screen hit-tests `PAUSE_BUTTONS` in `game.js`. Sticks are drawn on a full-screen overlay canvas,
+`TouchControls.draw`, called at the end of `Game.render`.
+
+To test touch headlessly, dispatch `new TouchEvent('touchstart', { changedTouches: [new Touch({
+identifier, target: document.body, clientX, clientY })], cancelable: true, bubbles: true })` on
+`document.body`, using client (CSS) pixels.
 
 **Entities ↔ Game.** Player, Enemy, Bullet, EnemyBullet, Particle and FloatText all share one shape:
 `update(dt, game)`, `draw(ctx)` and a `dead` flag. `Game.updateWorld` updates each list, handles all
@@ -101,7 +122,7 @@ the boss dies if the level has `boss` set. After that it goes to `levelComplete(
 capped by `maxAlive`.
 
 **Audio.** `Sound.play(name)` in `audio.js` synthesizes every effect with Web Audio; there are no
-files. It does nothing until the first click or keypress creates the AudioContext, and while muted.
+files. It does nothing until the first click, keypress or tap creates the AudioContext, and while muted.
 Add a new sound as a `case` in `Sound.play`.
 
 **Persistence.** `localStorage` keys are `pixelSiege.best` and `pixelSiege.muted`. Every access is

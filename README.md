@@ -18,6 +18,11 @@ straight to a level (1–6).
 | Pause | Esc / P (Q quits to the menu while paused) |
 | Mute | M |
 
+**On a phone or tablet:** drag your left thumb to move and your right thumb to aim and shoot. The
+gun fires while the right stick is pushed. Each stick appears wherever your thumb lands. The button
+in the top-right corner pauses the game and has the sound and quit options. Turn your phone
+sideways for the biggest view.
+
 Clear 5 levels by hitting each level's kill target, then defeat the Overlord in
 level 6. Clearing a level gives a score bonus and restores one heart. Your best
 score is saved in the browser.
@@ -29,6 +34,7 @@ score is saved in the browser.
 | `index.html` | page + canvas |
 | `sprites.js` | pixel-art sprites (text grids), 3x5 bitmap font, floor generator |
 | `input.js` | keyboard + mouse |
+| `touch.js` | on-screen twin-stick touch controls, pause button |
 | `audio.js` | synthesized sound effects (Web Audio) |
 | `entities.js` | player, enemy types and AI, bullets, particles |
 | `levels.js` | level list: kill targets, spawn rates, enemy mix, floor theme |
