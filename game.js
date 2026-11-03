@@ -13,6 +13,13 @@
 const VIEW_W = 320;
 const VIEW_H = 240;
 const STEP = 1 / 60; // fixed update rate
+
+// Touch-mode pause menu buttons (buffer px). Read by update and render.
+const PAUSE_BUTTONS = {
+  sound: { x: VIEW_W / 2 - 55, y: 132, w: 110, h: 15 },
+  quit: { x: VIEW_W / 2 - 55, y: 152, w: 110, h: 15 },
+};
+const inRect = (p, r) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
 const BEST_KEY = 'pixelSiege.best';
 const INTRO_TIME = 2.6;      // level banner duration
 const COMPLETE_WAIT = 6;     // auto-continue from the level-complete screen
@@ -48,6 +55,7 @@ const Game = {
     this.menuFloor = buildFloor(VIEW_W, VIEW_H, FLOOR_THEMES[0]);
 
     Input.init(this.canvas, VIEW_W, VIEW_H);
+    TouchControls.init(this.canvas);
     Sound.init();
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('blur', () => {
@@ -61,11 +69,26 @@ const Game = {
   },
 
   resize() {
-    const s = Math.max(1, Math.floor(Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H)));
+    const fit = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H);
+    let s = Math.max(1, Math.floor(fit));
+    let cssScale = s;
+    // On phones, whole-number scaling would leave the game tiny (often 1x), so
+    // fill the screen instead, drawing at device resolution to keep pixels sharp.
+    if (Input.touchMode) {
+      cssScale = fit;
+      s = Math.max(1, Math.ceil(fit * (window.devicePixelRatio || 1)));
+    }
     this.scale = s;
     this.canvas.width = VIEW_W * s;
     this.canvas.height = VIEW_H * s;
+    this.canvas.style.width = Math.floor(VIEW_W * cssScale) + 'px';
+    this.canvas.style.height = Math.floor(VIEW_H * cssScale) + 'px';
     this.ctx.imageSmoothingEnabled = false;
+  },
+
+  // "TAP" on touch screens, "CLICK" with a mouse
+  tapWord() {
+    return Input.touchMode ? 'TAP' : 'CLICK';
   },
 
   // ------------------------------------------------------------ run / level setup
@@ -296,6 +319,11 @@ const Game = {
       case 'PAUSED':
         if (Input.wasPressed('Escape', 'KeyP')) { this.state = 'PLAYING'; Sound.play('blip'); }
         else if (Input.wasPressed('KeyQ')) this.state = 'MENU';
+        else if (Input.touchMode && Input.mouse.clicked) {
+          if (inRect(Input.mouse, PAUSE_BUTTONS.sound)) { Sound.toggleMute(); Sound.play('blip'); }
+          else if (inRect(Input.mouse, PAUSE_BUTTONS.quit)) this.state = 'MENU';
+          else { this.state = 'PLAYING'; Sound.play('blip'); }
+        }
         break;
 
       case 'LEVEL_COMPLETE':
@@ -474,9 +502,16 @@ const Game = {
     }
 
     const ch = Sprites.crosshair;
-    c.drawImage(ch, Math.round(Input.mouse.x) - 4, Math.round(Input.mouse.y) - 4);
+    if (!Input.touchMode) {
+      c.drawImage(ch, Math.round(Input.mouse.x) - 4, Math.round(Input.mouse.y) - 4);
+    } else if (Input.aim && this.state === 'PLAYING') {
+      // touch: show where the aim stick points, a short way out from the gun
+      const p = this.player.gunPivot();
+      c.drawImage(ch, Math.round(p.x + Input.aim.x * 30) - 4, Math.round(p.y + Input.aim.y * 30) - 4);
+    }
 
     this.ctx.drawImage(this.buf, 0, 0, this.canvas.width, this.canvas.height);
+    TouchControls.draw(this.state === 'PLAYING');
   },
 
   renderWorld(c) {
@@ -537,8 +572,21 @@ const Game = {
       this.drawBar(c, cx - 50, 12, 100, 4, k / L.kills, '#ffe46b');
     }
 
+    if (Input.touchMode) {
+      // pause button (the tap zone in touch.js is larger than the icon)
+      const bx = VIEW_W - 14, by = 22;
+      c.fillStyle = 'rgba(26,28,44,0.75)';
+      c.fillRect(bx, by, 10, 10);
+      c.fillStyle = '#c2c3d8';
+      c.fillRect(bx + 3, by + 2, 1, 6);
+      c.fillRect(bx + 6, by + 2, 1, 6);
+    }
+
     if (this.levelIndex === 0 && this.time < 6 && this.state === 'PLAYING') {
-      drawText(c, 'ARROWS/WASD MOVE - MOUSE AIM - CLICK SHOOT', cx, VIEW_H - 9, '#8b9bb4', 1, 'center');
+      const hint = Input.touchMode
+        ? 'LEFT THUMB MOVE - RIGHT THUMB AIM + SHOOT'
+        : 'ARROWS/WASD MOVE - MOUSE AIM - CLICK SHOOT';
+      drawText(c, hint, cx, VIEW_H - 9, '#8b9bb4', 1, 'center');
     }
   },
 
@@ -591,13 +639,24 @@ const Game = {
     c.restore();
 
     if (Math.floor(t * 2.5) % 2 === 0) {
-      drawText(c, 'CLICK TO START', cx, 146, '#ffffff', 2, 'center');
+      drawText(c, this.tapWord() + ' TO START', cx, 146, '#ffffff', 2, 'center');
     }
 
-    drawText(c, 'MOVE: ARROWS / WASD', cx, 172, '#c2c3d8', 1, 'center');
-    drawText(c, 'AIM: MOUSE    SHOOT: CLICK', cx, 181, '#c2c3d8', 1, 'center');
-    drawText(c, 'PAUSE: ESC / P    SOUND: M' + (Sound.muted ? ' (MUTED)' : ''), cx, 190, '#c2c3d8', 1, 'center');
-    drawText(c, LEVELS.length + ' LEVELS - SURVIVE THEM ALL', cx, 204, '#8b9bb4', 1, 'center');
+    if (Input.touchMode) {
+      drawText(c, 'LEFT THUMB: MOVE', cx, 172, '#c2c3d8', 1, 'center');
+      drawText(c, 'RIGHT THUMB: AIM + SHOOT', cx, 181, '#c2c3d8', 1, 'center');
+      drawText(c, 'PAUSE AND SOUND: TOP-RIGHT BUTTON', cx, 190, '#c2c3d8', 1, 'center');
+      if (window.innerHeight > window.innerWidth) {
+        drawText(c, 'TIP: TURN YOUR PHONE SIDEWAYS', cx, 204, '#ffe46b', 1, 'center');
+      } else {
+        drawText(c, LEVELS.length + ' LEVELS - SURVIVE THEM ALL', cx, 204, '#8b9bb4', 1, 'center');
+      }
+    } else {
+      drawText(c, 'MOVE: ARROWS / WASD', cx, 172, '#c2c3d8', 1, 'center');
+      drawText(c, 'AIM: MOUSE    SHOOT: CLICK', cx, 181, '#c2c3d8', 1, 'center');
+      drawText(c, 'PAUSE: ESC / P    SOUND: M' + (Sound.muted ? ' (MUTED)' : ''), cx, 190, '#c2c3d8', 1, 'center');
+      drawText(c, LEVELS.length + ' LEVELS - SURVIVE THEM ALL', cx, 204, '#8b9bb4', 1, 'center');
+    }
 
     drawText(c, 'BEST ' + this.best, cx, 222, '#ffe46b', 1, 'center');
   },
@@ -611,9 +670,26 @@ const Game = {
     const cx = VIEW_W / 2;
     this.dim(c, 0.65);
     drawText(c, 'PAUSED', cx, 90, '#ffffff', 3, 'center');
+    if (Input.touchMode) {
+      drawText(c, 'TAP ANYWHERE TO RESUME', cx, 116, '#c2c3d8', 1, 'center');
+      this.drawButton(c, PAUSE_BUTTONS.sound, 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON'));
+      this.drawButton(c, PAUSE_BUTTONS.quit, 'QUIT TO MENU');
+      return;
+    }
     drawText(c, 'ESC / P TO RESUME', cx, 120, '#c2c3d8', 1, 'center');
     drawText(c, 'Q TO QUIT TO MENU', cx, 130, '#c2c3d8', 1, 'center');
     drawText(c, 'M TO ' + (Sound.muted ? 'UNMUTE' : 'MUTE') + ' SOUND', cx, 140, '#c2c3d8', 1, 'center');
+  },
+
+  drawButton(c, r, label) {
+    c.fillStyle = '#1a1c2c';
+    c.fillRect(r.x, r.y, r.w, r.h);
+    c.fillStyle = '#5a5d80';
+    c.fillRect(r.x, r.y, r.w, 1);
+    c.fillRect(r.x, r.y + r.h - 1, r.w, 1);
+    c.fillRect(r.x, r.y, 1, r.h);
+    c.fillRect(r.x + r.w - 1, r.y, 1, r.h);
+    drawText(c, label, r.x + r.w / 2, r.y + 5, '#ffffff', 1, 'center');
   },
 
   renderLevelComplete(c) {
@@ -638,7 +714,7 @@ const Game = {
 
     if (t > 0.8) {
       const secs = Math.ceil(COMPLETE_WAIT - t);
-      drawText(c, `STARTING IN ${secs}  -  CLICK TO GO NOW`, cx, 184, '#ffffff', 1, 'center');
+      drawText(c, `STARTING IN ${secs}  -  ${this.tapWord()} TO GO NOW`, cx, 184, '#ffffff', 1, 'center');
     }
   },
 
@@ -658,7 +734,7 @@ const Game = {
     drawText(c, 'KILLS ' + this.kills + '    ACCURACY ' + this.totalAccuracy() + '%', cx, 134, '#c2c3d8', 1, 'center');
 
     if (this.overT > 1 && Math.floor(this.overT * 2.5) % 2 === 0) {
-      drawText(c, 'CLICK TO CONTINUE', cx, 170, '#ffffff', 1, 'center');
+      drawText(c, this.tapWord() + ' TO CONTINUE', cx, 170, '#ffffff', 1, 'center');
     }
   },
 
@@ -680,7 +756,7 @@ const Game = {
     drawText(c, 'KILLS ' + this.kills + '    ACCURACY ' + this.totalAccuracy() + '%', cx, 138, '#c2c3d8', 1, 'center');
 
     if (this.overT > 1.5 && Math.floor(this.overT * 2.5) % 2 === 0) {
-      drawText(c, 'CLICK TO RETURN TO MENU', cx, 176, '#ffffff', 1, 'center');
+      drawText(c, this.tapWord() + ' TO RETURN TO MENU', cx, 176, '#ffffff', 1, 'center');
     }
   },
 };

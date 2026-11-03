@@ -32,11 +32,13 @@ class Player {
     if (Input.isDown('ArrowRight', 'KeyD')) dx += 1;
     if (Input.isDown('ArrowUp', 'KeyW')) dy -= 1;
     if (Input.isDown('ArrowDown', 'KeyS')) dy += 1;
+    const len = Math.hypot(dx, dy);
+    if (len > 0) { dx /= len; dy /= len; }
+    else { dx = Input.move.x; dy = Input.move.y; } // touch stick: analog, length 0..1
     this.moving = dx !== 0 || dy !== 0;
     if (this.moving) {
-      const len = Math.hypot(dx, dy);
-      this.x += (dx / len) * this.speed * dt;
-      this.y += (dy / len) * this.speed * dt;
+      this.x += dx * this.speed * dt;
+      this.y += dy * this.speed * dt;
     }
     this.x += this.kbx * dt;
     this.y += this.kby * dt;
@@ -53,14 +55,16 @@ class Player {
 
     // --- aiming
     const p = this.gunPivot();
-    this.angle = Math.atan2(Input.mouse.y - p.y, Input.mouse.x - p.x);
+    if (Input.aim) this.angle = Math.atan2(Input.aim.y, Input.aim.x);
+    else if (!Input.touchMode) this.angle = Math.atan2(Input.mouse.y - p.y, Input.mouse.x - p.x);
+    else if (this.moving) this.angle = Math.atan2(dy, dx); // touch, not aiming: face where you walk
     this.facing = Math.cos(this.angle) < 0 ? -1 : 1;
 
     // --- shooting
     this.fireCooldown -= dt;
     this.flashT -= dt;
     this.kick = Math.max(0, this.kick - dt * 20);
-    if (Input.mouse.down && this.fireCooldown <= 0) this.shoot(game);
+    if ((Input.mouse.down || Input.touchFire) && this.fireCooldown <= 0) this.shoot(game);
   }
 
   gunPivot() {

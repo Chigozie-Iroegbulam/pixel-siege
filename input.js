@@ -3,12 +3,22 @@
 //
 // isDown(...)     -> held right now
 // wasPressed(...) -> pressed since the last update step (one-shot)
-// mouse.clicked   -> left button pressed since the last update step
+// mouse.clicked   -> left button pressed (or screen tapped) since the last update step
+//
+// Touch fields (written by touch.js):
+// touchMode -> player is using a touch screen (changes HUD text and scaling)
+// move      -> movement stick, {x, y} with length 0..1
+// aim       -> aim stick direction as a unit vector, or null
+// touchFire -> aim stick is pushed, so the gun should fire
 
 const Input = {
   keys: {},
   pressed: {},
   mouse: { x: 160, y: 120, down: false, clicked: false },
+  touchMode: false,
+  move: { x: 0, y: 0 },
+  aim: null,
+  touchFire: false,
   _canvas: null,
   _viewW: 320,
   _viewH: 240,

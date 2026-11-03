@@ -1,6 +1,6 @@
 // audio.js — retro sound effects synthesized with the Web Audio API.
 // No audio files: every sound is a short oscillator or noise envelope.
-// The AudioContext starts on the first click (browsers require a user gesture).
+// The AudioContext starts on the first click, key or tap (browsers require a user gesture).
 
 const MUTE_KEY = 'pixelSiege.muted';
 
@@ -18,6 +18,8 @@ const Sound = {
     };
     window.addEventListener('mousedown', unlock);
     window.addEventListener('keydown', unlock);
+    window.addEventListener('touchstart', unlock);
+    window.addEventListener('touchend', unlock); // iOS only unlocks audio here
   },
 
   _create() {

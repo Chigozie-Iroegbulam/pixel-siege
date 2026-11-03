@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Pixel Siege</title>
   <style>
     html, body {
@@ -10,6 +10,11 @@
       height: 100%;
       background: #0d0e17;
       overflow: hidden;
+      touch-action: none;           /* no scrolling or pinch-zoom on phones */
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
       display: flex;
@@ -22,6 +27,13 @@
       image-rendering: pixelated; /* keep pixels crisp */
       image-rendering: crisp-edges;
     }
+    .touch-overlay {                /* on-screen sticks, drawn by touch.js */
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -29,6 +41,7 @@
 
   <script src="sprites.js"></script>
   <script src="input.js"></script>
+  <script src="touch.js"></script>
   <script src="audio.js"></script>
   <script src="entities.js"></script>
   <script src="levels.js"></script>
